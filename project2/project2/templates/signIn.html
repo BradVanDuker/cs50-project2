@@ -1,0 +1,15 @@
+{% extends 'template.html' %}
+
+{% block head %}
+	<script src="/static/signInOut.js"></script>
+{% endblock %}
+
+{% block titlebar %}Sign In{% endblock %}
+
+{% block body %}
+	<div class="form-group">
+		Username:  <input type="text" id="username" required><br>
+		<button onclick="signIn()">Sign In</button>
+		<div id="output"></div>
+	</div>
+{% endblock %}
