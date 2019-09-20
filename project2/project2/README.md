@@ -4,7 +4,7 @@
 * **Display Name:**  
   * [x] When a user visits your web application for the first time, they should be prompted to type in a display name that will eventually be associated with every message the user sends. 
   * [x] If a user closes the page and returns to your app later, the display name should still be remembered.
-* [] **Channel Creation:**  Any user should be able to create a new channel, so long as its name doesn’t conflict with the name of an existing channel.
+* [x] **Channel Creation:**  Any user should be able to create a new channel, so long as its name doesn’t conflict with the name of an existing channel.
 * [] **Channel List:**  Users should be able to see a list of all current channels, and selecting one should allow the user to view the channel. We leave it to you to decide how to display such a list.
 * **Messages View:**
   * [] Once a channel is selected, the user should see any messages that have already been sent in that channel, up to a maximum of 100 messages. 
