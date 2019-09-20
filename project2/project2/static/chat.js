@@ -26,9 +26,14 @@ function drawChannelListing(channelNames) {
 	
 	const newList = document.createElement("UL");
 	channelNames.forEach(name => {
-		let textNode = document.createTextNode(name);
-		let listItem = document.createElement("LI");
+		const textNode = document.createTextNode(name);
+		const listItem = document.createElement("LI");
 		listItem.appendChild(textNode);
+		
+		const joinButton = document.createElement("button");
+		joinButton.innerHTML = 'Join';
+		listItem.appendChild(joinButton);
+		
 		newList.appendChild(listItem);		
 	});
 	myDiv.appendChild(newList);
