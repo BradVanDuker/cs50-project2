@@ -1,3 +1,5 @@
+const CHANNEL_EVENT = 'channel list';
+
 function getUserName () {
 	return localStorage.getItem('username');
 }
@@ -17,14 +19,19 @@ function drawUserName() {
 
 
 function drawChannelListing(channelNames) {
-	// const listNode = document.querySelector('.channel-listing ul');
+	const myDiv = document.querySelector('.channel-listing');
+	
+	const oldList = myDiv.querySelector('ul');
+	myDiv.removeChild(oldList);
+	
+	const newList = document.createElement("UL");
 	channelNames.forEach(name => {
-		let listItem = document.createElement("LI");
 		let textNode = document.createTextNode(name);
+		let listItem = document.createElement("LI");
 		listItem.appendChild(textNode);
-		document.querySelector('.channel-listing ul').appendChild(listItem);
-		
+		newList.appendChild(listItem);		
 	});
+	myDiv.appendChild(newList);
 
 	return false;
 	
@@ -57,9 +64,12 @@ function updateMessages() {
 }
 
 
-function createChannel(channelName) {
+function createChannel(socket) {
+	"Click!";
+	const newName = document.querySelector('#newChannelName').value;
+	let thing = socket.emit(CHANNEL_EVENT, {name : newName });
 	// send signal and channel name to server
-	channelListingDiv = document.querySelector('.channel-listing ul');
+	//channelListingDiv = document.querySelector('.channel-listing ul');
 	
 	return false;
 }
@@ -75,17 +85,21 @@ function connectToServer() {
 	var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
 	
 	socket.on('connect', () => {
-		socket.emit('channel list');
+		socket.emit(CHANNEL_EVENT);
 	});
 	
-	socket.on('channel list', channelList => {
+	socket.on(CHANNEL_EVENT, channelList => {
 		drawChannelListing(channelList);
 	});
+	
+	return socket;
 }
 
 
 document.addEventListener('DOMContentLoaded', () => {	
 
-	connectToServer();
+	const socket = connectToServer();
 	drawUserName();
+	document.querySelector('#newChannelButton').addEventListener('click', () => {createChannel(socket)});
 });
+
