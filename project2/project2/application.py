@@ -1,9 +1,10 @@
 import os
 
 from flask import Flask, request
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO, emit, rooms
 from flask.templating import render_template
 from channel import Channel
+from _datetime import date, datetime
 
 
 app = Flask(__name__)
@@ -36,13 +37,21 @@ channels['general'] = Channel()
 
 
 @socketio.on('join')
-def joinRoom(data):
+def join(data):
+    clientRooms = rooms(request.sid)
+    for room in clientRooms:
+        emit('join', data={'time': str(datetime.now()), 'name': data['username']}, room=room)
+    
     pass
 
 
 def leaveRoom():
     pass
 
+
+@socketio.on('connect')
+def onConnect():
+    pass
 
 # rooms(sid, namespace)
 # close_room

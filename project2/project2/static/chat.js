@@ -1,4 +1,5 @@
 const CHANNEL_EVENT = 'channel list';
+const JOIN_EVENT = 'join';
 
 function getUserName () {
 	return localStorage.getItem('username');
@@ -18,7 +19,7 @@ function drawUserName() {
 }
 
 
-function drawChannelListing(channelNames) {
+function drawChannelListing(channelNames, socket) {
 	const myDiv = document.querySelector('.channel-listing');
 	
 	const oldList = myDiv.querySelector('ul');
@@ -32,9 +33,12 @@ function drawChannelListing(channelNames) {
 		
 		const joinButton = document.createElement("button");
 		joinButton.innerHTML = 'Join';
+		joinButton.onclick = () => {
+			socket.emit(JOIN_EVENT, {username: getUserName(), channelName: name});
+		};
 		listItem.appendChild(joinButton);
 		
-		newList.appendChild(listItem);		
+		newList.appendChild(listItem);
 	});
 	myDiv.appendChild(newList);
 
@@ -56,7 +60,11 @@ function getChannels() {
 	// return ["Huey", "Dewy", "Louy"];
 }
 
-function changeChannel() {
+function joinChannel(data) {
+	const x = 2;
+	const time = data['time'];
+	console.log("join event");
+	
 	return false;
 }
 
@@ -72,7 +80,7 @@ function updateMessages() {
 function createChannel(socket) {
 	"Click!";
 	const newName = document.querySelector('#newChannelName').value;
-	let thing = socket.emit(CHANNEL_EVENT, {name : newName });
+	const thing = socket.emit(CHANNEL_EVENT, {name : newName });
 	// send signal and channel name to server
 	//channelListingDiv = document.querySelector('.channel-listing ul');
 	
@@ -94,7 +102,11 @@ function connectToServer() {
 	});
 	
 	socket.on(CHANNEL_EVENT, channelList => {
-		drawChannelListing(channelList);
+		drawChannelListing(channelList, socket);
+	});
+	
+	socket.on(JOIN_EVENT, data => {
+		joinChannel(data);
 	});
 	
 	return socket;
