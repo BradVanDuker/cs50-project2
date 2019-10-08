@@ -1,7 +1,7 @@
 import os
 
 from flask import Flask, request
-from flask_socketio import SocketIO, emit, rooms, join_room
+from flask_socketio import SocketIO, emit, rooms, join_room, leave_room
 from flask.templating import render_template
 from channel import Channel
 from _datetime import date, datetime
@@ -32,19 +32,44 @@ def chat():
 
 
 
-channels = set()
+channels = dict()
 def createChannel(channelName):
     if not channelName or channelName in channels:
         return False
     else:
-        channels.add(channelName)
+        channels[channelName] = []
+        #channels.add(channelName)
         return True
 
 createChannel('general')
 
 
+def saveMsg(channel, msg):
+    channels[channel].append(msg)
+
+
+def _getMsgs(channel):
+    return channels[channel]
+
+
+@socketio.on('getMsgs')
+def getMessages(channelName):
+    msgs = _getMsgs(channelName)
+    emit('all messages', {'channel': channelName, 'msgs': msgs}, broadcast=False)
+
+
+def sendMsg(message, broadcast=True):
+    channel = message['channel']
+    emit('msg', message, room=channel, broadcast=broadcast)
+    
+    
+def createMsg(time, channel, sender, text):
+    return {'time':time, 'channel':channel, 'name':sender, 'msg':text}
+    
+
 def getTimeStamp():
     return str(datetime.now())
+
 
 @socketio.on('join')
 def onJoinEvent(data):
@@ -55,9 +80,9 @@ def onJoinEvent(data):
     username = data['username']
     time = getTimeStamp()
     join_room(channel)
-    message =  {'time': time, 'name': 'Server', 'channel': channel, 'msg':f'{username} has joined channel {channel}'}
-    emit('msg', message, room=channel, broadcast=True)
-    #emit('msg', f'{time} {channel} has joined the channel\n', room=channel)
+    text = f'{username} has joined channel {channel}'
+    message = createMsg(time, channel, 'Server', text)
+    sendMsg(message, channel)
 
 
 @socketio.on('msg')
@@ -67,8 +92,8 @@ def onMsgEvent(data):
     msg = data['msg']
     channel = data['channel']
     print( f"{username} {time} {channel} {msg}\n")
-    emit('msg', {'name': username, 'time': time, 'msg':msg, 'channel': channel})
-    # emit('msg', data={'time': time, 'channel': channel, 'name': username, 'msg': msg}, broadcast=True)
+    message = createMsg(time, channel, username, msg)
+    sendMsg(message, channel)
 
 
 @socketio.on('test')
@@ -76,9 +101,16 @@ def test(data):
     print(data)
     emit('test', data)
 
-def leaveRoom():
-    pass
 
+@socketio.on('leave')
+def leaveRoom(data):
+    channel = data['channel']
+    leave_room(channel)
+    user = data['name']
+    msg = f'{user} has left channel {channel}'
+    message = createMsg(getTimeStamp(), channel, 'Server', msg)
+    sendMsg(message, channel)
+    
 
 @socketio.on('connect')
 def onConnectEvent():

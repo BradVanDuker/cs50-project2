@@ -1,6 +1,9 @@
 const CHANNEL_EVENT = 'channel list';
 const JOIN_EVENT = 'join';
 const MESSAGE_EVENT = 'msg';
+const LEAVE_EVENT = 'leave';
+const ALL_MESSAGES_EVENT = 'all messages';
+
 
 function getUserName () {
 	return localStorage.getItem('username');
@@ -52,6 +55,14 @@ function drawChannelListing(channelNames, socket) {
 		};
 		listItem.appendChild(joinButton);
 		
+		const leaveButton = document.createElement("button");
+		leaveButton.innerHTML = "Leave";
+		leaveButton.onclick = () => {
+			leaveChannel(name, socket);
+		};
+		listItem.appendChild(leaveButton);
+		
+		
 		newList.appendChild(listItem);
 	});
 	myDiv.appendChild(newList);
@@ -70,10 +81,26 @@ function drawChannelListing(channelNames, socket) {
 }
 
 
-function getChannels() {
-	// return ["Huey", "Dewy", "Louy"];
+function requestAllMessages(socket, channel) {
+	socket.emit(ALL_MESSAGES_EVENT, channel);
 }
 
+
+function getAllMessages(messages, channel) {
+	if (channel === getCurrentchannel()) {
+		// clear the message area
+		area = document.querySelector('.msg-text-area');
+		area.innerHTML = "";
+		// for each message
+		messages.forEach( msg => {
+			// draw the message
+			drawMessage(msg);
+			
+		});
+			
+	}
+}
+	
 
 function joinChannel(channel, socket) {
 	socket.emit(JOIN_EVENT, {username: getUserName(), channel: channel})
@@ -81,27 +108,30 @@ function joinChannel(channel, socket) {
 }
 
 
-function createMsgDisplayString(time, username, msg) {
-	return `${username} at ${time}:\n ${msg}`;
+function leaveChannel(channelName, socket) {
+	socket.emit(LEAVE_EVENT, {name: getUserName(), channel: channelName});
+	if (channelName === getCurrentChannel()) {
+		setCurrentChannel('');
+	}
+}
+
+
+function createDisplayStrFromMsg(msg) {
+	return `${msg['name']} at ${msg['time']}:\n ${msg['msg']}`;
 }
 
 
 function drawMessage(msg) {
-	document.querySelector('.msg-text-area').innerHTML += msg + '<br>';
+	const s = createDisplayStrFromMsg(msg);
+	document.querySelector('.msg-text-area').innerHTML += s + '<br>';
 }
 
 
-let allMessages = {};
-
 // called when a message signal is emitted from server
-function recieveMessage(time, username, channel, msg) {	
-	if ( !(channel in allMessages) ) {
-		allMessages[channel] = [];
-	}
-	const s = createMsgDisplayString(time, username, msg);
-	allMessages[channel].push(s);
-	if (getCurrentChannel() === channel) {
-		drawMessage(s);
+function recieveMessage(msg) {	
+	const channel = msg['channel'];
+	if (channel === getCurrentChannel()) {
+		drawMessage(msg);
 	}
 }
 
@@ -115,9 +145,15 @@ function createChannel(socket) {
 }
 
 
+function createMessage(text, channel) {
+	time = Math.floor(Date.now() / 1000);
+	return {name: getUserName(), channel: channel, msg: text, time: time};
+}
+
+
 function sendMessage(msg, channel, socket) {
-	socket.emit(MESSAGE_EVENT, {name: getUserName(), channel: channel, msg: msg})
-	// send message to server
+	message = createMessage(msg, channel);
+	socket.emit(MESSAGE_EVENT, message);
 	return false;
 }
 
@@ -137,18 +173,14 @@ function connectToServer() {
 	
 	
 	socket.on(JOIN_EVENT, data => {
-		user = data['username'];
-		time = data['time'];
-		drawMessage(`{time} {username} has joined the channel`);
+		username = data['name']
+		data['text'] = `{username} has joined the channel`;
+		drawMessage(data);
 	});
 
 	
 	socket.on(MESSAGE_EVENT, data => {
-		const time = data['time'];
-		const name = data['name'];
-		const channel = data['channel'];
-		const msg = data['msg'];
-		recieveMessage(time, name, channel, msg);
+		recieveMessage(data);
 	});
 	
 	
@@ -162,7 +194,6 @@ function connectToServer() {
 
 function testListen(msg) {
 	console.log(msg);
-	allMessages['general'] = msg;
 	drawMsg(msg);
 }
 
@@ -177,7 +208,8 @@ document.addEventListener('DOMContentLoaded', () => {
 	
 	document.querySelector('#send').addEventListener('click', () => {
 		const s = document.querySelector('#msg-entry').value;
-		socket.emit(MESSAGE_EVENT, {name: getUserName(), msg: s, channel: getCurrentChannel()} );
+		sendMessage(s, getCurrentchannel(), socket)
+		// socket.emit(MESSAGE_EVENT, {name: getUserName(), msg: s, channel: getCurrentChannel()} );
 	})
 });
 
