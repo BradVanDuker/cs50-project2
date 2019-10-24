@@ -3,7 +3,6 @@ function signIn() {
 	if (username) {
 		localStorage.setItem('username', username);
 		window.location.href = "/chat";
-		let x = 2;
 	}
 	else {
 		output = document.querySelector('#output');

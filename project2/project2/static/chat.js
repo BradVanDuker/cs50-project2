@@ -1,3 +1,5 @@
+
+
 const CHANNEL_EVENT = 'channel list';
 const JOIN_EVENT = 'join';
 const MESSAGE_EVENT = 'msg';
@@ -5,8 +7,26 @@ const LEAVE_EVENT = 'leave';
 const ALL_MESSAGES_EVENT = 'all messages';
 
 
+function redirectToLogin() {
+	window.location.href = "/";
+	return false;
+}
+
+
 function getUserName () {
-	return localStorage.getItem('username');
+	try {
+		const name = localStorage.getItem('username');
+		if (!name) {
+			redirectToLogin();
+			return false;
+		}
+		else {
+			return localStorage.getItem('username');
+		}
+	} catch (err) {
+		redirectToLogIn();
+		return false;
+	}
 }
 
 
@@ -29,8 +49,13 @@ function drawUserName() {
 		const my_str = `<p>Hello, ${username}!</p>`;
 		document.querySelector('.username').innerHTML = my_str;
 	}
-	return false;
-	
+	return false;	
+}
+
+
+function drawChannelName() {
+	const channelName = localStorage.getItem('currentChannel');
+	document.querySelector('.channelTitle').innerHTML = channelName;
 }
 
 
@@ -82,14 +107,15 @@ function drawChannelListing(channelNames, socket) {
 
 
 function requestAllMessages(socket, channel) {
+	console.log(ALL_MESSAGES_EVENT);
 	socket.emit(ALL_MESSAGES_EVENT, channel);
 }
 
 
-function getAllMessages(messages, channel) {
-	if (channel === getCurrentchannel()) {
+function receiveAllMessages(messages, channel) {
+	if (channel === getCurrentChannel()) {
 		// clear the message area
-		area = document.querySelector('.msg-text-area');
+		const area = document.querySelector('.msg-text-area');
 		area.innerHTML = "";
 		// for each message
 		messages.forEach( msg => {
@@ -105,6 +131,7 @@ function getAllMessages(messages, channel) {
 function joinChannel(channel, socket) {
 	socket.emit(JOIN_EVENT, {username: getUserName(), channel: channel})
 	setCurrentChannel(channel);
+	requestAllMessages(socket, channel);
 }
 
 
@@ -121,9 +148,21 @@ function createDisplayStrFromMsg(msg) {
 }
 
 
+function autoScrollWindow() {
+	const totalHeight = document.body.offsetHeight;
+	const windowHeight = window.innerHeight;
+	const scrolled = window.scrollY;
+	if ((scrolled + windowHeight) == totalHeight) {
+		const newPos = totalHeight - windowheight;
+		window.scrollTo(0, newPos);
+	}
+}
+
+
 function drawMessage(msg) {
 	const s = createDisplayStrFromMsg(msg);
 	document.querySelector('.msg-text-area').innerHTML += s + '<br>';
+	autoScrollWindow();
 }
 
 
@@ -136,9 +175,9 @@ function recieveMessage(msg) {
 }
 
 
-function createChannel(socket) {
-	"Click!";
-	const newChannelName = document.querySelector('#newChannelName').value;
+function createChannel(socket, newChannelName) {
+	//"Click!";
+	//const newChannelName = document.querySelector('#newChannelName').value;
 	socket.emit(CHANNEL_EVENT, newChannelName);
 
 	return false;
@@ -146,14 +185,17 @@ function createChannel(socket) {
 
 
 function createMessage(text, channel) {
-	time = Math.floor(Date.now() / 1000);
+	const time = Math.floor(Date.now() / 1000);
 	return {name: getUserName(), channel: channel, msg: text, time: time};
 }
 
 
-function sendMessage(msg, channel, socket) {
-	message = createMessage(msg, channel);
-	socket.emit(MESSAGE_EVENT, message);
+
+function sendMessage(channel, socket, msg) {
+	if (msg !== "") {
+		const message = createMessage(msg, channel);
+		socket.emit(MESSAGE_EVENT, message);
+	}
 	return false;
 }
 
@@ -186,7 +228,12 @@ function connectToServer() {
 	
 	socket.on('test', msg => {
 		testListen(msg);
-	})
+	});
+	
+	
+	socket.on(ALL_MESSAGES_EVENT, messages => {
+		receiveAllMessages(messages['msgs'], messages['channel']);
+	});
 	
 	return socket;
 }
@@ -198,18 +245,40 @@ function testListen(msg) {
 }
 
 
+
 document.addEventListener('DOMContentLoaded', () => {
 	drawUserName();
 	
 	const socket = connectToServer();
-	document.querySelector('#newChannelButton').addEventListener('click', () => {
-		createChannel(socket)
+	
+	const newChannelBttn = document.querySelector('#newChannelButton');
+	const newChannelTextBox = document.querySelector('#newChannelName'); 
+	newChannelBttn.addEventListener('click', () => {
+		createChannel(socket, newChannelTextBox.value);
+		newchannelTextBox.value = "";
+	});
+	newChannelTextBox.addEventListener("keyup", (event) => {
+		if (event.keyCode == 13) {
+			event.preventDefault();
+			newChannelBttn.click();
+		}
 	});
 	
-	document.querySelector('#send').addEventListener('click', () => {
-		const s = document.querySelector('#msg-entry').value;
-		sendMessage(s, getCurrentchannel(), socket)
-		// socket.emit(MESSAGE_EVENT, {name: getUserName(), msg: s, channel: getCurrentChannel()} );
-	})
+	const sendButton = document.querySelector('#send');
+	const msgEntryBox = document.querySelector('#msg-entry');
+	sendButton.addEventListener('click', () => {
+		sendMessage(getCurrentChannel(), socket, msgEntryBox.value);
+		document.querySelector('#msg-entry').value = "";
+	});
+	document.querySelector('#msg-entry').addEventListener("keyup", (event) => {
+		// taken from https://www.w3schools.com/howto/tryit.asp?filename=tryhow_js_trigger_button_enter
+		if (event.keyCode === 13) {
+			event.preventDefault();
+			sendButton.click();
+		}
+	});
+	
+	drawChannelName();
+	
 });
 

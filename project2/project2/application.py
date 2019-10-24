@@ -1,21 +1,16 @@
 import os
 
-from flask import Flask, request
-from flask_socketio import SocketIO, emit, rooms, join_room, leave_room
+from flask import Flask
+from flask_socketio import SocketIO, emit, join_room, leave_room
 from flask.templating import render_template
-from channel import Channel
-from _datetime import date, datetime
+from _datetime import datetime
+from random import randint
+
 
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 socketio = SocketIO(app)
 
-"""
-@app.route("/")
-def index():
-    return "Project 2: TODO"
-"""
 
 def renderPage(pageName, **args):
     return render_template(pageName, **args)
@@ -43,23 +38,29 @@ def createChannel(channelName):
 
 createChannel('general')
 
+CHAT_BUFFER_SIZE = 100
 
+#TODO: fix race conditions here
 def saveMsg(channel, msg):
-    channels[channel].append(msg)
+    storage = channels[channel]
+    if len(storage) > CHAT_BUFFER_SIZE:
+        storage.pop(0)
+    storage.append(msg)
 
 
 def _getMsgs(channel):
     return channels[channel]
 
 
-@socketio.on('getMsgs')
-def getMessages(channelName):
+@socketio.on('all messages')
+def onGetAllMessages(channelName):
     msgs = _getMsgs(channelName)
     emit('all messages', {'channel': channelName, 'msgs': msgs}, broadcast=False)
 
 
 def sendMsg(message, broadcast=True):
     channel = message['channel']
+    saveMsg(channel, message)
     emit('msg', message, room=channel, broadcast=broadcast)
     
     
@@ -85,11 +86,55 @@ def onJoinEvent(data):
     sendMsg(message, channel)
 
 
+def rollDice(qty, sides):
+    results = []
+    for i in range(0, qty):
+        if sides == 0:
+            roll = 0;
+        else:
+            roll = randint(1, sides)
+        results.append(roll)
+    return results
+
+
+def magic8():
+    fortunes = ["Future hazy. Try again later.", "Does a whale have wet farts?", \
+                "Certainly.", "Just google it.  That's what I always do.", "Definately not.", \
+                "You must construct additonal pylons.", "Hmmm....", "You ask too many questions.", \
+                "No.", "Yes.", "Maybe", "42", "*sticks fingers in ears and hums loudly*", \
+                "Sure.  Why not?", "I'll take \"Stupid Questions\" for 200, Alex."]
+    n = randint(0, len(fortunes) - 1)
+    f = fortunes[n]
+    if not f:
+        print("fortune error on roll " + n)
+    return fortunes[randint(0, len(fortunes) - 1)]
+
+
 @socketio.on('msg')
 def onMsgEvent(data):
-    username = data['name']
-    time = getTimeStamp()
     msg = data['msg']
+    username = data['name']
+    commandStart = "/"
+    if msg.find(commandStart) == 0:
+        command = msg.strip(commandStart)
+        cmd = command.split()[0]
+        if cmd == "roll":
+            command = command.strip("roll")
+            parts = command.split("d")
+            qty = int(parts[0])
+            sides = int(parts[1])
+            results = rollDice(qty, sides)
+            msg = f'{username} rolled {qty}d{sides} and got {results}'
+            username = "System"
+        elif cmd == "died":
+            msg = f'{username} died a little inside'
+            username = "System"
+        elif cmd == "magic8":
+            username = "System"
+            msg = magic8()
+        else:
+            return
+    time = getTimeStamp()
     channel = data['channel']
     print( f"{username} {time} {channel} {msg}\n")
     message = createMsg(time, channel, username, msg)
@@ -115,14 +160,7 @@ def leaveRoom(data):
 @socketio.on('connect')
 def onConnectEvent():
     return
-    #data['channel'] = 'general'
-    #join(data)
-    
 
-# rooms(sid, namespace)
-# close_room
-# join_room
-# leave_room
 
 @socketio.on('channel list')
 def onChannelEvent(newChannelName=None):
@@ -146,3 +184,7 @@ def main():
     os.putenv('FLASK_APP', 'application.py')
     os.putenv('FLASK_DEBUG', '1')
     app.run()
+    
+    
+if __name__ == '__main__':
+    main()
