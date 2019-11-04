@@ -18,3 +18,16 @@
 * [] **Personal Touch:**  Add at least one additional feature to your chat application of your choosing! Feel free to be creative, but if you’re looking for ideas, possibilities include: supporting deleting one’s own messages, supporting use attachments (file uploads) as messages, or supporting private messaging between two users.
 * [] **Readme:** In README.md, include a short writeup describing your project, what’s contained in each file, and (optionally) any other additional information the staff should know about your project. Also, include a description of your personal touch and what you chose to add to the project.
 * [] **Other Packages:** If you’ve added any Python packages that need to be installed in order to run your web application, be sure to add them to requirements.txt!
+
+
+# Description
+A basic chat system with server and client.  Features include multiple custom channels, remembering the channel and user name last used, and caching of messages.
+
+
+# Other Features
+####Server commands####
+ * **/roll (x)d(y)**  Rolls x number of dice with, each with y sides, and displays the results in chat.  e.g. /roll 2d4 will roll two four-sided dice.  Useful for solving minor conflicts in an unbiased fashion.
+ * **/died**  During debates somebody will eventually say something that makes you lose faith in humanity.  This command lets everyone know you just died a little inside.
+ * **/magic8**  A magic-8 ball.  Perfect for helping with any existential questions you have.
+####Auto scrolling####
+Will keep current messages at the bottom of the screen ONLY if you are already scrolled down to the bottom.  This lets you keep new messages in view, but still allows you to scroll up to previous messages without losing control of you window's position.
