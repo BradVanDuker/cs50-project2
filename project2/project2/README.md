@@ -31,3 +31,7 @@ A basic chat system with server and client.  Features include multiple custom ch
  * **/magic8**  A magic-8 ball.  Perfect for helping with any existential questions you have.
 ####Auto scrolling####
 Will keep current messages at the bottom of the screen ONLY if you are already scrolled down to the bottom.  This lets you keep new messages in view, but still allows you to scroll up to previous messages without losing control of you window's position.
+
+# To Run
+Application.py can serve as the main entry point.  It sets environment variables and then starts up the flaskserver .  Run with `python application.py`
+  
